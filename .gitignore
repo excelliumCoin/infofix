@@ -1,0 +1,10 @@
+# Next.js
+.next/
+out/
+node_modules/
+
+# env & prisma local db
+.env
+.env.*
+!.env.example
+prisma/dev.db

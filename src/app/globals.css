@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn   { @apply px-3 py-2 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 transition; }
+  .card  { @apply rounded-2xl border border-white/15 bg-white/5 p-3; }
+  .badge { @apply inline-flex items-center gap-1 px-2 py-1 rounded-xl text-xs border border-white/20; }
+  /* Logo default glow */
+.logo-glow {
+  filter: drop-shadow(0 0 18px rgba(139, 92, 246, .30)); /* mor glow */
+  transition: filter .18s ease, transform .18s ease;
+}
+
+/* Hover'da daha güçlü glow (sarmalayıcı .group üzerinden tetikliyoruz) */
+.group:hover .logo-glow {
+  filter: drop-shadow(0 0 28px rgba(139, 92, 246, .55));
+  transform: translateY(-0.5px);
+}
+}
+
