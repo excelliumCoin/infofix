@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Prisma paketlerini server bundle'a dışarıdan ekle
+  serverExternalPackages: ["@prisma/client", "prisma"],
+
+  // React Compiler (Next 16'da üst düzeyde)
   reactCompiler: true,
 };
 

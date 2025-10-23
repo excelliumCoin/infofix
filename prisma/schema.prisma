@@ -1,12 +1,13 @@
+generator client {
+  provider      = "prisma-client-js"
+  // Linux + OpenSSL 3 (Vercel) için motoru dahil et
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
-generator client {
-  provider = "prisma-client-js"
-}
-
 
 model Submission {
   id         String   @id @default(cuid())
