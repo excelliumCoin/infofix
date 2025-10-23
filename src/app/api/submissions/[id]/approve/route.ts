@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createPublicClient, http } from "viem";
 import { monadTestnet } from "@/lib/chains";
@@ -8,7 +8,11 @@ import { ethers } from "ethers";
 const RPC = process.env.NEXT_PUBLIC_MONAD_RPC!;
 const TM = process.env.NEXT_PUBLIC_TASK_MANAGER as `0x${string}`;
 const ORACLE_PK = process.env.ORACLE_PK!;
-const client = createPublicClient({ chain: monadTestnet, transport: http(RPC) });
+
+const client = createPublicClient({
+  chain: monadTestnet,
+  transport: http(RPC),
+});
 
 const DOMAIN = {
   name: "InfoFix",
@@ -34,17 +38,18 @@ const TYPES = {
  * {
  *   approver: "0x...",             // task creator wallet
  *   signedMessage: "0x...",         // signer.signMessage("approve:<id>:<nonce>")
- *   nonce: "..."                    // rastgele string/number (replay guard)
- *   amountWei?: "..."               // opsiyonel; boşsa görevdeki reward kullanılır
- *   ttl?: number                    // opsiyonel; default 900 sn
+ *   nonce: "..."                    // replay guard
+ *   amountWei?: "..."               // optional override
+ *   ttl?: number                    // optional; default 900s
  * }
  */
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
+
     const body = (await req.json()) as {
       approver: `0x${string}`;
       signedMessage: string;
@@ -81,10 +86,11 @@ export async function PATCH(
       return NextResponse.json({ error: "not task creator" }, { status: 403 });
     }
 
-    // 4) Ödül miktarı (override yoksa görevden al)
+    // 4) Ödül miktarı
     let amount: bigint;
-    if (body.amountWei) amount = BigInt(body.amountWei);
-    else {
+    if (body.amountWei) {
+      amount = BigInt(body.amountWei);
+    } else {
       amount =
         sub.action === 0
           ? (task[3] as bigint)
@@ -95,23 +101,23 @@ export async function PATCH(
         return NextResponse.json({ error: "reward is zero" }, { status: 400 });
     }
 
-    // 5) Voucher oluştur
+    // 5) Voucher
     const now = Math.floor(Date.now() / 1000);
     const voucher = {
       taskId: BigInt(sub.taskId),
       user: sub.user as `0x${string}`,
-      action: sub.action,
+      action: sub.action as number,
       amount,
       nonce:
-        BigInt(now) * 1000000n + BigInt(Math.floor(Math.random() * 1_000_000)),
+        BigInt(now) * 1_000_000n + BigInt(Math.floor(Math.random() * 1_000_000)),
       deadline: BigInt(now + Math.max(60, Math.min(body.ttl ?? 900, 3600))),
     };
 
-    // 6) Oracle ile imzala
+    // 6) Oracle imzası (EIP-712)
     const wallet = new ethers.Wallet(ORACLE_PK);
     const sig = await wallet.signTypedData(DOMAIN, TYPES as any, voucher as any);
 
-    // 7) DB güncelle (approved & voucher sakla)
+    // 7) DB update
     await prisma.submission.update({
       where: { id },
       data: {

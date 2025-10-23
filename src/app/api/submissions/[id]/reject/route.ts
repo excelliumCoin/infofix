@@ -1,20 +1,21 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 /**
  * PATCH /api/submissions/:id/reject
  * Body:
  * {
- *   approver: "0x...",    // bilgilendirme amaçlı
- *   reason?: "metin"      // opsiyonel
+ *   approver: "0x...",   // optional, bilgi amaçlı
+ *   reason?: "..."       // optional
  * }
  */
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = params.id;
+    const { id } = await params;
+
     const body = (await req.json().catch(() => ({}))) as {
       approver?: `0x${string}`;
       reason?: string;
